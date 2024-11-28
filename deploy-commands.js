@@ -1,10 +1,9 @@
 const { REST, Routes } = require('discord.js');
 const dotenv = require('dotenv');
-dotenv.config();  // Carrega as variáveis de ambiente do arquivo .env
+dotenv.config();  
 const fs = require('node:fs');
 const path = require('node:path');
 
-// Acessando as variáveis de ambiente diretamente do .env
 const clientId = process.env.CLIENT_ID;
 const guildId = process.env.GUILD_ID;
 const token = process.env.TOKEN_DISCORD;
