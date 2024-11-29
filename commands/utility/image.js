@@ -28,10 +28,10 @@ module.exports = {
                     'X-Prodia-Key': TOKEN_PRODIA
                 },
                 body: JSON.stringify({
-                    model: 'amIReal_V41.safetensors [0a8a2e61]',
+                    model: 'absolutereality_v181.safetensors [3d9d4d2b]',
                     prompt: prompt,
                     negative_prompt: 'badly drawn',
-                    style_preset: 'photographic',
+                    style_preset: 'cinematic',
                     steps: 20,
                     cfg_scale: 7,
                     seed: -1,
