@@ -1,39 +1,37 @@
-const { SlashCommandBuilder } = require('discord.js'); // Importa o construtor de Slash Commands
-const dotenv = require('dotenv'); // Importa o módulo dotenv
-const fetch = require('node-fetch'); // Importa o fetch para fazer as requisições HTTP
+const { SlashCommandBuilder } = require('discord.js');
+const dotenv = require('dotenv');
+const fetch = require('node-fetch');
 
-dotenv.config(); // Carrega as variáveis de ambiente
-const { TOKEN_PRODIA } = process.env; // Carrega o token da API do Prodia
+dotenv.config();
+const { TOKEN_PRODIA } = process.env;
 
 module.exports = {
-    data: new SlashCommandBuilder() // Define o comando como um Slash Command
-        .setName('imagem') // Define o nome do comando
-        .setDescription('Responde com um ID de trabalho para a geração de uma imagem a partir de um prompt') // Define a descrição do comando
-        .addStringOption(option => // Define a opção de texto
-            option.setName('prompt')  // Define o nome da opção
-                .setDescription('Texto que será usado para gerar a imagem') // Define a descrição da opção
-                .setRequired(true) // Define que a opção é obrigatória
+    data: new SlashCommandBuilder()
+        .setName('imagem')
+        .setDescription('Responde com uma imagem gerada a partir de um prompt')
+        .addStringOption(option => 
+            option.setName('prompt')
+                .setDescription('Texto que será usado para gerar a imagem')
+                .setRequired(true)
         ),
     async execute(interaction) {
         try {
-            const prompt = interaction.options.getString('prompt'); // Obtém o texto do prompt
+            const prompt = interaction.options.getString('prompt');
 
-            // Inicia a geração da imagem com o prompt
-            await interaction.reply("Gerando imagem..."); // Envia uma mensagem de confirmação para o usuário
+            await interaction.reply("Gerando imagem...");
 
-            // Realiza a requisição para gerar a imagem
             const response = await fetch('https://api.prodia.com/v1/sd/generate', {
                 method: 'POST',
                 headers: {
-                    'accept': 'application/json',
+                    accept: 'application/json',
                     'content-type': 'application/json',
-                    'X-Prodia-Key': TOKEN_PRODIA // Passa a chave da API como cabeçalho
+                    'X-Prodia-Key': TOKEN_PRODIA
                 },
                 body: JSON.stringify({
-                    model: 'v1-5-pruned-emaonly.safetensors [d7049739]',
+                    model: 'amIReal_V41.safetensors [0a8a2e61]',
                     prompt: prompt,
                     negative_prompt: 'badly drawn',
-                    style_preset: 'cinematic',
+                    style_preset: 'photographic',
                     steps: 20,
                     cfg_scale: 7,
                     seed: -1,
@@ -44,22 +42,47 @@ module.exports = {
                 })
             });
 
-            // Verifica se a resposta da API foi bem-sucedida
+            const data = await response.json();
+
             if (!response.ok) {
                 console.error('Erro na resposta da API:', response.statusText);
                 return await interaction.editReply('Ocorreu um erro ao tentar gerar a imagem.');
             }
 
-            // Obtém o JSON da resposta
-            const data = await response.json(); 
-            console.log("Resposta da API:", data.job); // Para depuração, pode remover depois
+            if (data.status === "queued" || data.status === "generating") {
+                const url = `https://api.prodia.com/v1/job/${data.job}`;
+                const options = {
+                    method: 'GET',
+                    headers: {
+                        accept: 'application/json',
+                        'X-Prodia-Key': TOKEN_PRODIA
+                    }
+                };
 
-            // Envia o job ID como resposta
-            await interaction.editReply(`O ID do trabalho é: ${data.job}`);
+                const checkJobStatus = async () => {
+                    const jobResponse = await fetch(url, options);
+                    const jobData = await jobResponse.json();
+                    console.log('Status do Job:', jobData);
+
+                    if (jobData.status === 'succeeded' && jobData.imageUrl) {
+                        await interaction.editReply(`Aqui está a imagem gerada: ${jobData.imageUrl}`);
+                    } 
+                    else if (jobData.status !== 'queued' && jobData.status !== 'generating') {
+                        await interaction.editReply('Ocorreu um erro ao gerar a imagem.');
+                    } 
+                    else {
+                        setTimeout(checkJobStatus, 5000);
+                    }
+                };
+
+                await checkJobStatus();
+            } else {
+                await interaction.editReply('A imagem não pôde ser gerada devido a um erro desconhecido.');
+            }
 
         } catch (error) {
-            console.error("Erro ao executar o comando Prodia:", error); // Log de erro
-            await interaction.editReply('Ocorreu um erro ao tentar gerar a imagem.'); // Envia uma mensagem de erro para o usuário
+            console.error("Erro ao executar o comando Prodia:", error);
+            await interaction.editReply('Ocorreu um erro ao tentar gerar a imagem.');
         }
     }
 };
