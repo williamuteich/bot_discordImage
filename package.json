@@ -10,7 +10,10 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@api/prodia": "file:.api/apis/prodia",
+    "axios": "^1.7.8",
     "discord.js": "^14.16.3",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "prodia": "^1.1.1"
   }
 }
